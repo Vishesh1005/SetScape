@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SetScape — Explore. Visualize. Master Set Theory.</title>
+<meta name="description" content="An interactive digital textbook on Elementary Set Theory for BCA/MCA students.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="reading-progress"></div>
+
+<nav id="navbar">
+  <button class="nav-brand" onclick="scrollToTop()">SetScape</button>
+  <div class="nav-right">
+    <div id="chapter-menu-wrap">
+      <button id="chapter-menu-btn" onclick="toggleChapterDropdown()" aria-haspopup="true">
+        <span class="label">Chapters</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div id="chapter-dropdown" role="menu">
+        <a href="#toc" onclick="scrollToId('toc'); return false;">Table of Contents</a>
+        <a href="#ch1" onclick="scrollToId('ch1'); return false;">1 · Introduction</a>
+        <a href="#ch2" onclick="scrollToId('ch2'); return false;">2 · Elementary Set Theory</a>
+        <a href="#ch3" onclick="scrollToId('ch3'); return false;">3 · Types of Sets</a>
+        <a href="#ch4" onclick="scrollToId('ch4'); return false;">4 · Subsets &amp; Power Sets</a>
+        <a href="#ch5" onclick="scrollToId('ch5'); return false;">5 · Venn Diagrams</a>
+        <a href="#ch6" onclick="scrollToId('ch6'); return false;">6 · Operations on Sets</a>
+        <a href="#ch7" onclick="scrollToId('ch7'); return false;">7 · Set Laws</a>
+        <a href="#ch8" onclick="scrollToId('ch8'); return false;">8 · Set Combinations</a>
+        <a href="#ch9" onclick="scrollToId('ch9'); return false;">9 · Applications in CS</a>
+        <a href="#ch10" onclick="scrollToId('ch10'); return false;">10 · Summary &amp; Formulas</a>
+        <a href="#ch11" onclick="scrollToId('ch11'); return false;">11 · Glossary</a>
+        <a href="#ch12" onclick="scrollToId('ch12'); return false;">12 · Practice &amp; Quiz</a>
+        <a href="#ch13" onclick="scrollToId('ch13'); return false;">13 · References</a>
+      </div>
+    </div>
+    <button class="icon-btn" id="search-btn" aria-label="Search" onclick="document.getElementById('search-modal').classList.add('open'); document.getElementById('search-input').focus();">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    </button>
+    <button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode"></button>
+    <div class="progress-ring-wrap" title="Your reading progress">
+      <svg width="36" height="36" viewBox="0 0 36 36">
+        <circle class="progress-ring-bg" cx="18" cy="18" r="15"/>
+        <circle id="progress-ring-fill" class="progress-ring-fill" cx="18" cy="18" r="15"/>
+      </svg>
+    </div>
+  </div>
+</nav>
+
+<button id="back-to-top" aria-label="Back to top" onclick="scrollToTop()">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<!-- ================= SEARCH MODAL ================= -->
+<div id="search-modal" style="position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:1200; display:none; align-items:flex-start; justify-content:center; padding-top:12vh;">
+  <div style="background:var(--bg-elevated); width:min(600px,90vw); border-radius:var(--radius-lg); box-shadow:var(--shadow-lifted); padding:20px; border:1px solid var(--border);">
+    <input id="search-input" type="text" placeholder="Search chapters and terms… (press / to open, Esc to close)"
+      style="width:100%; padding:14px 16px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg); color:var(--text-primary); font-size:15px;"
+      oninput="runSearch(this.value)">
+    <div id="search-results" style="margin-top:12px; max-height:50vh; overflow-y:auto;"></div>
+  </div>
+</div>
+<script>
+document.getElementById('search-modal').addEventListener('click', function(e){ if(e.target === this) this.classList.remove('open'); });
+document.head.insertAdjacentHTML('beforeend', '<style>#search-modal.open{display:flex !important;}</style>');
+const SEARCH_INDEX = [
+  {title:'1 · Introduction', id:'ch1', text:'history Georg Cantor Russell paradox applications real-life'},
+  {title:'2 · Elementary Set Theory', id:'ch2', text:'roster set-builder notation membership well-defined'},
+  {title:'3 · Types of Sets', id:'ch3', text:'empty singleton finite infinite equal equivalent universal cardinality'},
+  {title:'4 · Subsets & Power Sets', id:'ch4', text:'subset proper subset superset power set intervals'},
+  {title:'5 · Venn Diagrams', id:'ch5', text:'john venn circles rectangles'},
+  {title:'6 · Operations on Sets', id:'ch6', text:'union intersection difference complement symmetric cartesian product'},
+  {title:'7 · Set Laws', id:'ch7', text:'identity domination idempotent commutative associative distributive de morgan'},
+  {title:'8 · Set Combinations', id:'ch8', text:'inclusion exclusion overlap word problem'},
+  {title:'9 · Applications in CS', id:'ch9', text:'sql python hash set search engine database'},
+  {title:'10 · Summary & Formulas', id:'ch10', text:'formula sheet summary'},
+  {title:'11 · Glossary', id:'ch11', text:'glossary terms definitions'},
+  {title:'12 · Practice & Quiz', id:'ch12', text:'practice questions quiz'},
+  {title:'13 · References', id:'ch13', text:'references sources'}
+];
+function runSearch(q) {
+  const results = document.getElementById('search-results');
+  if (!q.trim()) { results.innerHTML = ''; return; }
+  const matches = SEARCH_INDEX.filter(item => (item.title + ' ' + item.text).toLowerCase().includes(q.toLowerCase()));
+  results.innerHTML = matches.map(m => `<a href="#${m.id}" onclick="document.getElementById('search-modal').classList.remove('open'); scrollToId('${m.id}'); return false;" style="display:block; padding:10px 12px; border-radius:8px; color:var(--text-primary); text-decoration:none; font-size:14px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">${m.title}</a>`).join('') || '<p style="color:var(--text-secondary); font-size:14px; padding:10px;">No matches found.</p>';
+}
+</script>
+
+<main>
+
+<!-- ================= COVER ================= -->
+<section id="cover">
+  <div class="dot-grid" aria-hidden="true"></div>
+  <div class="floating-symbol" style="top:10%; left:6%; font-size:160px;" aria-hidden="true">{ }</div>
+  <div class="floating-symbol alt" style="bottom:8%; right:8%; font-size:130px;" aria-hidden="true">∪</div>
+  <div class="floating-symbol" style="top:55%; left:2%; font-size:90px; animation-duration:60s;" aria-hidden="true">∈</div>
+  <svg style="position:absolute; top:18%; right:10%; opacity:0.4;" width="160" height="110" viewBox="0 0 160 110" aria-hidden="true">
+    <circle cx="60" cy="55" r="45" fill="none" stroke="#2563EB" stroke-width="1.5" opacity="0.3"/>
+    <circle cx="100" cy="55" r="45" fill="none" stroke="#10B981" stroke-width="1.5" opacity="0.3"/>
+  </svg>
+  <div class="chapter-eyebrow" style="justify-content:center;">MCA · Semester I · Discrete Mathematics</div>
+  <h1>SetScape</h1>
+  <p class="tagline">Explore. Visualize. Master Set Theory.</p>
+  <p style="color:var(--text-secondary); font-size:14px; margin-bottom:28px; letter-spacing:0.5px;">Vishesh Dua &nbsp;·&nbsp; Roll No. 26225035 &nbsp;·&nbsp; Class 1MCA</p>
+  <button class="cta-btn" onclick="scrollToId('acknowledgement')">
+    Begin Journey
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </button>
+  <div class="scroll-hint">scroll to begin ↓</div>
+</section>
+
+<!-- ================= ACKNOWLEDGEMENT ================= -->
+<section class="chapter" id="acknowledgement">
+  <div class="chapter-eyebrow reveal">Front Matter</div>
+  <h2 class="chapter-title reveal">Acknowledgement</h2>
+  <p class="reveal">Every textbook, however small, stands on the shoulders of people who never appear on its cover. SetScape exists because set theory itself was shaped over more than a century of careful, sometimes contentious work — from Cantor's first tentative steps into the infinite, to Russell's paradox that shook its foundations, to the axiomatic frameworks that stabilized it for the rest of mathematics to build on.</p>
+  <p class="reveal">This project also owes a direct debt to the faculty who encouraged creativity and interactive, web-based submissions over a conventional write-up — that single piece of latitude is the entire reason this exists as an experience rather than a document.</p>
+  <p class="reveal">And to you, reading this: thank you for giving a set theory chapter more attention than a set theory chapter usually gets.</p>
+</section>
+
+<!-- ================= PREFACE ================= -->
+<section class="chapter" id="preface">
+  <div class="chapter-eyebrow reveal">Front Matter</div>
+  <h2 class="chapter-title reveal">Preface</h2>
+  <p class="reveal">Set theory has a reputation problem. Taught flatly, it can look like a list of symbols to memorize before the "real" mathematics begins. Taught properly, it's the opposite: it's the language every other branch of mathematics — and a good chunk of computer science — quietly speaks underneath.</p>
+  <p class="reveal">SetScape's purpose is narrow and specific: to teach Elementary Set Theory to a first-semester BCA/MCA student in a way that's visual, interactive, and genuinely usable for exam preparation — without losing the precision that makes the subject worth learning in the first place.</p>
+  <div class="card definition reveal">
+    <div class="card-label">Who this is for</div>
+    <p>Students meeting formal set notation for the first time, anyone who wants a visual refresher before an exam, and instructors looking for a resource that rewards exploration rather than rote memorization.</p>
+  </div>
+  <div class="card remember reveal">
+    <div class="card-label">Learning outcomes</div>
+    <p>By the end, you should be able to: represent sets both ways, correctly distinguish ∈ from ⊆, compute unions/intersections/differences/complements by hand and explain them visually, apply the seven set laws (including De Morgan's), solve inclusion-exclusion word problems, and connect all of it to real code you might write.</p>
+  </div>
+</section>
+
+<!-- ================= ABOUT SETSCAPE ================= -->
+<section class="chapter" id="about">
+  <div class="chapter-eyebrow reveal">Front Matter</div>
+  <h2 class="chapter-title reveal">About SetScape</h2>
+  <p class="reveal">SetScape isn't a PDF wearing a website's clothes. Every diagram here is a live, hand-built SVG you can interact with — click a Venn diagram and watch its formal notation update in real time; type your own sets into the Power Set generator and watch it build out all 2ⁿ subsets; drag the inclusion-exclusion sliders and watch the formula solve itself as you go.</p>
+  <p class="reveal">The goal is for the interaction to <em>be</em> the explanation, not a decoration next to it. Reading a definition of "union" is fine. Toggling a Venn diagram between A∪B and A∩B ten times in a row until it clicks — that's the actual goal.</p>
+</section>
+
+<!-- ================= HOW TO USE ================= -->
+<section class="chapter" id="how-to-use">
+  <div class="chapter-eyebrow reveal">Front Matter</div>
+  <h2 class="chapter-title reveal">How to Use This Book</h2>
+  <div class="toc-grid reveal">
+    <div class="toc-item"><span class="toc-num">→</span> Scroll naturally, or jump to any chapter from the nav bar at the top.</div>
+    <div class="toc-item"><span class="toc-num">◆</span> Colored cards each mean something specific — Definition, Remember, Exam Tip, Common Mistake, Did You Know, and CS Connection. Learn the colors once and skim faster forever after.</div>
+    <div class="toc-item"><span class="toc-num">⚡</span> Every diagram with buttons or inputs is interactive — try clicking before reading the explanation.</div>
+    <div class="toc-item"><span class="toc-num">✓</span> Each chapter ends with a short quiz. Finishing it unlocks a completion badge tracked in your browser (no account needed).</div>
+    <div class="toc-item"><span class="toc-num">☾</span> Toggle dark mode from the top-right icon — it's remembered next time you visit.</div>
+    <div class="toc-item"><span class="toc-num">/</span> Press <code>/</code> anywhere to search the book instantly.</div>
+  </div>
+</section>
+
+<!-- ================= TABLE OF CONTENTS ================= -->
+<section class="chapter wide" id="toc">
+  <div class="chapter-eyebrow reveal">Front Matter</div>
+  <h2 class="chapter-title reveal">Table of Contents</h2>
+  <div class="toc-grid reveal">
+    <a class="toc-item" href="#ch1" onclick="scrollToId('ch1'); return false;"><span class="toc-num">01</span> Introduction</a>
+    <a class="toc-item" href="#ch2" onclick="scrollToId('ch2'); return false;"><span class="toc-num">02</span> Elementary Set Theory</a>
+    <a class="toc-item" href="#ch3" onclick="scrollToId('ch3'); return false;"><span class="toc-num">03</span> Types of Sets</a>
+    <a class="toc-item" href="#ch4" onclick="scrollToId('ch4'); return false;"><span class="toc-num">04</span> Subsets &amp; Power Sets</a>
+    <a class="toc-item" href="#ch5" onclick="scrollToId('ch5'); return false;"><span class="toc-num">05</span> Venn Diagrams</a>
+    <a class="toc-item" href="#ch6" onclick="scrollToId('ch6'); return false;"><span class="toc-num">06</span> Operations on Sets</a>
+    <a class="toc-item" href="#ch7" onclick="scrollToId('ch7'); return false;"><span class="toc-num">07</span> Set Laws</a>
+    <a class="toc-item" href="#ch8" onclick="scrollToId('ch8'); return false;"><span class="toc-num">08</span> Set Combinations</a>
+    <a class="toc-item" href="#ch9" onclick="scrollToId('ch9'); return false;"><span class="toc-num">09</span> Applications in CS</a>
+    <a class="toc-item" href="#ch10" onclick="scrollToId('ch10'); return false;"><span class="toc-num">10</span> Summary &amp; Formula Sheet</a>
+    <a class="toc-item" href="#ch11" onclick="scrollToId('ch11'); return false;"><span class="toc-num">11</span> Glossary</a>
+    <a class="toc-item" href="#ch12" onclick="scrollToId('ch12'); return false;"><span class="toc-num">12</span> Practice &amp; Quiz</a>
+    <a class="toc-item" href="#ch13" onclick="scrollToId('ch13'); return false;"><span class="toc-num">13</span> References</a>
+  </div>
+</section>
+
+<div class="section-divider" aria-hidden="true"></div>
+
+<!-- ================= CHAPTER 1 — INTRODUCTION ================= -->
+<section class="chapter" id="ch1">
+  <div class="chapter-eyebrow reveal">Chapter 01</div>
+  <h2 class="chapter-title reveal">Introduction</h2>
+  <p class="lead reveal">Before the symbols, the story — because set theory didn't arrive fully formed. It was born out of one mathematician's obsession with a very strange question: are some infinities bigger than others?</p>
+
+  <h3 class="section-title reveal">A brief history</h3>
+  <p class="reveal">In 1874, German mathematician Georg Cantor was working on trigonometric series when he stumbled into a much bigger problem: how do you compare the "size" of infinite collections? His answer — that you could put two infinite sets into one-to-one correspondence to compare them — led him to a genuinely shocking discovery: the real numbers are "more infinite" than the natural numbers. Not all infinities are equal.</p>
+  <p class="reveal">This idea was controversial. Fellow mathematician Leopold Kronecker fiercely opposed treating infinite sets like finite ones. But Cantor's framework survived the pushback and, by the early 1900s, set theory had become the language other mathematicians used to build everything else — numbers, functions, geometry, all of it, redefined in terms of sets.</p>
+
+  <div class="card didyouknow reveal">
+    <div class="card-label">Did you know?</div>
+    <p>In 1901, philosopher Bertrand Russell found a genuine hole in naive set theory: consider "the set of all sets that do not contain themselves." Does it contain itself? Either answer leads to a contradiction. This became known as <span class="term">Russell's Paradox</span>, and it's why modern set theory is built on careful axioms (Zermelo–Fraenkel, 1908) rather than the free-form "any collection is a set" approach Cantor started with.</p>
+  </div>
+
+  <h3 class="section-title reveal">Why sets matter</h3>
+  <p class="reveal">Sets aren't just a chapter you get through before "real" math starts — they're the substrate underneath most of it. Relations, functions, probability, and even numbers themselves can all be formally built out of nothing but sets.</p>
+
+  <div class="card cs-connection reveal">
+    <div class="card-label">CS Connection</div>
+    <p>If you've ever written <code>SELECT * FROM customers UNION SELECT * FROM leads</code>, used a Python <code>set()</code> to remove duplicates, or typed a Google search with multiple keywords, you were doing set theory without necessarily naming it. Chapter 9 goes deep on this.</p>
+  </div>
+
+  <h3 class="section-title reveal">Real-life examples</h3>
+  <p class="reveal">A library's catalogue is a set of books. Your phone's contact list is a set of people. The students who show up to a 9am lecture form a set — and the students who show up <em>and</em> submitted their assignment form the intersection of two sets. You already think in sets; this chapter just gives that thinking a formal vocabulary.</p>
+</section>
+
+<!-- ================= CHAPTER 2 — ELEMENTARY SET THEORY ================= -->
+<section class="chapter" id="ch2">
+  <div class="chapter-eyebrow reveal">Chapter 02</div>
+  <h2 class="chapter-title reveal">Elementary Set Theory</h2>
+  <p class="lead reveal">Every formal system starts with a definition precise enough to build on. Here's set theory's.</p>
+
+  <div class="card definition reveal">
+    <div class="card-label">Definition</div>
+    <p>A <span class="term">set</span> is a well-defined collection of distinct objects. "Well-defined" means that for any object, you can say with certainty whether it belongs to the set or not — no ambiguity allowed.</p>
+  </div>
+
+  <h3 class="section-title reveal">The "well-defined" test</h3>
+  <p class="reveal">This single word — well-defined — is what separates a set from a vague grouping. "The vowels in the English alphabet" is a set: for any letter, you can say definitively whether it's a vowel. "The best movies of all time" is not a set: whether a particular film belongs depends entirely on who you ask.</p>
+
+  <div class="card mistake reveal">
+    <div class="card-label">Common mistake</div>
+    <p>Students often assume any grouping counts as a "set" in casual conversation. In mathematics it only counts if membership is objectively decidable — subjective categories (best, worst, most interesting) don't qualify.</p>
+  </div>
+
+  <h3 class="section-title reveal">Membership notation</h3>
+  <p class="reveal">Sets are conventionally named with capital letters (A, B, C…) and their elements with lowercase letters. Membership is written with the Greek symbol ∈ ("belongs to") and its negation ∉ ("does not belong to").</p>
+  <div class="notation-block reveal">a ∈ A &nbsp;→&nbsp; "a belongs to A"<br>b ∉ A &nbsp;→&nbsp; "b does not belong to A"</div>
+
+  <h3 class="section-title reveal">Two ways to represent a set</h3>
+  <p class="reveal">Every set can be written in one of two equivalent forms:</p>
+
+  <details class="solved-example reveal">
+    <summary>Roster (tabular) form — list every element</summary>
+    <div class="solved-step">All elements are listed explicitly, separated by commas, inside curly braces. Order doesn't matter and repeats collapse to one.</div>
+    <div class="solved-step"><span class="step-num">e.g.</span> The set of vowels: V = {a, e, i, o, u}</div>
+    <div class="solved-step"><span class="step-num">e.g.</span> Odd numbers under 10: O = {1, 3, 5, 7, 9}</div>
+  </details>
+
+  <details class="solved-example reveal">
+    <summary>Set-builder form — describe the defining property</summary>
+    <div class="solved-step">Instead of listing elements, you state the rule every element must satisfy: {x : condition on x}. Read the colon as "such that."</div>
+    <div class="solved-step"><span class="step-num">e.g.</span> V = {x : x is a vowel in the English alphabet}</div>
+    <div class="solved-step"><span class="step-num">e.g.</span> A = {x : x is a natural number and 3 &lt; x &lt; 10} → this describes {4, 5, 6, 7, 8, 9}</div>
+  </details>
+
+  <div class="card remember reveal">
+    <div class="card-label">Remember</div>
+    <p>Set-builder form is essential for infinite sets you can't fully list — like {x : x is a real number} — while roster form works best for small, finite, or clearly-patterned sets.</p>
+  </div>
+
+  <!-- Roster/Set-builder converter widget -->
+  <div class="widget reveal">
+    <h3>Try it: roster ↔ set-builder</h3>
+    <p class="hint">Type a comma-separated set in roster form to see it restated, or explore the examples above by editing the field below.</p>
+    <div class="widget-body">
+      <div class="controls" style="flex:1;">
+        <label class="field-label" for="ch2-roster-input">Roster form</label>
+        <input class="set-input" id="ch2-roster-input" type="text" placeholder="e.g. 2, 4, 6, 8" value="2, 4, 6, 8" oninput="ch2UpdateNotation()">
+        <div class="result-notation" id="ch2-output">{ 2, 4, 6, 8 } — cardinality 4</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-practice reveal">
+    <div class="card-label">Quick Practice</div>
+    <p>Write the set {x : x is a natural number and x² &lt; 30} in roster form, then check your answer.</p>
+    <div class="qp-input-row">
+      <input type="text" id="ch2-qp-input" placeholder="e.g. 1, 2, 3, ...">
+      <button class="qp-btn" onclick="ch2CheckPractice()">Check</button>
+    </div>
+    <div class="qp-feedback" id="ch2-qp-feedback"></div>
+  </div>
+</section>
+
+<div class="section-divider" aria-hidden="true"></div>
+
+<!-- ================= CHAPTER 3 — TYPES OF SETS ================= -->
+<section class="chapter" id="ch3">
+  <div class="chapter-eyebrow reveal">Chapter 03</div>
+  <h2 class="chapter-title reveal">Types of Sets</h2>
+  <p class="lead reveal">Not every set looks the same. This chapter builds the vocabulary you'll use constantly for the rest of the book.</p>
+
+  <h3 class="section-title reveal">Empty & Singleton Sets</h3>
+  <div class="card definition reveal">
+    <div class="card-label">Definition</div>
+    <p>The <span class="term">empty set</span> (or null set), written ∅ or {}, contains no elements at all. A <span class="term">singleton set</span> contains exactly one element — e.g. {5}.</p>
+  </div>
+  <p class="reveal">The empty set isn't "nothing" in a casual sense — it's a perfectly well-defined set, just one with zero members. Example: {x : x is a natural number and 1 &lt; x &lt; 2} is the empty set, because no natural number satisfies that condition.</p>
+
+  <h3 class="section-title reveal">Finite & Infinite Sets</h3>
+  <div class="card definition reveal">
+    <div class="card-label">Definition</div>
+    <p>A set is <span class="term">finite</span> if its elements can be completely counted — the counting process reaches an end. Otherwise it's <span class="term">infinite</span>.</p>
+  </div>
+  <p class="reveal">{a, e, i, o, u} is finite — 5 elements, full stop. The set of natural numbers ℕ = {1, 2, 3, …} is infinite — the "…" is doing real work there, signaling the pattern continues forever with no final element.</p>
+
+  <div class="card mistake reveal">
+    <div class="card-label">Common mistake</div>
+    <p>Not every infinite-looking set is actually infinite — check the bounds carefully. {x : x is a natural number and x &lt; 1,000,000} looks huge, but it's finite (exactly 999,999 elements). Infinity is about whether the counting <em>terminates</em>, not about size.</p>
+  </div>
+
+  <h3 class="section-title reveal">Equal Sets vs. Equivalent Sets</h3>
+  <p class="reveal">These two get mixed up constantly, so they get their own callout.</p>
+  <div class="card definition reveal">
+    <div class="card-label">Definition</div>
+    <p><span class="term">Equal sets</span> have exactly the same elements (A = B). <span class="term">Equivalent sets</span> merely have the same number of elements — their cardinalities match, but the elements themselves can be completely different.</p>
+  </div>
+  <div class="notation-block reveal">A = {1, 2, 3} and B = {3, 1, 2} &nbsp;→&nbsp; Equal (identical elements, order irrelevant)<br>A = {1, 2, 3} and C = {x, y, z} &nbsp;→&nbsp; Equivalent only (same size, different elements)</div>
+  <div class="card examtip reveal">
+    <div class="card-label">Exam Tip</div>
+    <p>Every pair of equal sets is automatically equivalent (same elements ⟹ same count) — but equivalent sets are not necessarily equal. This one-directional relationship is a favorite short-answer question.</p>
+  </div>
+
+  <h3 class="section-title reveal">Universal Set</h3>
+  <p class="reveal">In any given problem, the <span class="term">universal set</span> (U) is the "everything under consideration" set — every other set in that context is a subset of U. For a problem about triangles, U might be "all triangles in a plane." For a problem about students, U might be "all students in the school."</p>
+
+  <!-- Cardinality Calculator widget -->
+  <div class="widget reveal">
+    <h3>Cardinality calculator</h3>
+    <p class="hint">Type a set to see its cardinality — and whether it counts as empty, singleton, or neither.</p>
+    <div class="widget-body">
+      <div class="controls" style="flex:1;">
+        <label class="field-label" for="ch3-card-input">Set (roster form)</label>
+        <input class="set-input" id="ch3-card-input" type="text" placeholder="e.g. cat, dog, bird" value="cat, dog, bird" oninput="ch3UpdateCardinality()">
+        <div class="result-notation" id="ch3-card-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Equal vs Equivalent checker -->
+  <div class="widget reveal">
+    <h3>Equal or equivalent?</h3>
+    <p class="hint">Enter two sets and the checker will classify their relationship.</p>
+    <div class="widget-body">
+      <div class="controls" style="flex:1; min-width:200px;">
+        <label class="field-label" for="ch3-eq-a">Set A</label>
+        <input class="set-input" id="ch3-eq-a" type="text" value="1, 2, 3" oninput="ch3CheckEquality()">
+        <label class="field-label" for="ch3-eq-b">Set B</label>
+        <input class="set-input" id="ch3-eq-b" type="text" value="3, 2, 1" oninput="ch3CheckEquality()">
+        <div class="result-notation" id="ch3-eq-output"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHAPTER 4 — SUBSETS & POWER SETS ================= -->
+<section class="chapter" id="ch4">
+  <div class="chapter-eyebrow reveal">Chapter 04</div>
+  <h2 class="chapter-title reveal">Subsets &amp; Power Sets</h2>
+  <p class="lead reveal">Once you can compare two sets element-by-element, "subset" is the natural next question: is everything in A also in B?</p>
+
+  <div class="card definition reveal">
+    <div class="card-label">Definition</div>
+    <p>A is a <span class="term">subset</span> of B (written A ⊆ B) if every element of A is also an element of B. If additionally A ≠ B, A is a <span class="term">proper subset</span> of B (written A ⊂ B), and B is called a <span class="term">superset</span> of A.</p>
+  </div>
+
+  <div class="card remember reveal">
+    <div class="card-label">Remember</div>
+    <p>Two facts that always hold: every set is a subset of itself (A ⊆ A), and the empty set is a subset of every set (∅ ⊆ A) — including itself.</p>
+  </div>
+
+  <h3 class="section-title reveal">The classic trap: ∈ vs. ⊆</h3>
+  <div class="card mistake reveal">
+    <div class="card-label">Common mistake</div>
+    <p>Given A = {1, 2, {3, 4}, 5}, is {3, 4} an element or a subset? Here, {3, 4} appears literally as one of A's four elements — so {3, 4} ∈ A is true, and {{3, 4}} ⊆ A is also true (a set containing that one element is a subset). But {3, 4} ⊆ A is <strong>false</strong> — 3 and 4 individually are not elements of A at all. Read every question like this slowly.</p>
+  </div>
+
+  <!-- Subset checker widget -->
+  <div class="widget reveal">
+    <h3>Subset checker</h3>
+    <p class="hint">Enter two sets to check the relationship between them, both directions.</p>
+    <div class="widget-body">
+      <div class="controls" style="flex:1; min-width:200px;">
+        <label class="field-label" for="ch4-sub-a">Set A</label>
+        <input class="set-input" id="ch4-sub-a" type="text" value="1, 2" oninput="ch4CheckSubset()">
+        <label class="field-label" for="ch4-sub-b">Set B</label>
+        <input class="set-input" id="ch4-sub-b" type="text" value="1, 2, 3, 4" oninput="ch4CheckSubset()">
+        <div class="result-notation" id="ch4-sub-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="section-title reveal">Intervals as subsets of ℝ</h3>
+  <p class="reveal">When the universal set is the real numbers, subsets are often written as intervals rather than roster or set-builder form:</p>
+  <div class="notation-block reveal">
+    (a, b) = {x : a &lt; x &lt; b} &nbsp;→&nbsp; open interval, endpoints excluded<br>
+    [a, b] = {x : a ≤ x ≤ b} &nbsp;→&nbsp; closed interval, endpoints included<br>
+    [a, b) = {x : a ≤ x &lt; b} &nbsp;→&nbsp; half-open, a included, b excluded<br>
+    (a, b] = {x : a &lt; x ≤ b} &nbsp;→&nbsp; half-open, a excluded, b included
+  </div>
+  <svg class="reveal" width="100%" height="70" viewBox="0 0 400 70" role="img" aria-label="Number line showing an open interval from a to b, with open circles at both endpoints">
+    <line x1="20" y1="35" x2="380" y2="35" stroke="var(--border)" stroke-width="2"/>
+    <line x1="100" y1="35" x2="300" y2="35" stroke="#2563EB" stroke-width="4"/>
+    <circle cx="100" cy="35" r="6" fill="var(--bg)" stroke="#2563EB" stroke-width="3"/>
+    <circle cx="300" cy="35" r="6" fill="var(--bg)" stroke="#2563EB" stroke-width="3"/>
+    <text x="100" y="58" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-style="italic">a</text>
+    <text x="300" y="58" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-style="italic">b</text>
+  </svg>
+
+  <h3 class="section-title reveal">Power Set</h3>
+  <div class="card definition reveal">
+    <div class="card-label">Definition</div>
+    <p>The <span class="term">power set</span> of S, written P(S), is the set of <em>all</em> possible subsets of S — including ∅ and S itself. If S has n elements, P(S) has exactly 2ⁿ elements.</p>
+  </div>
+
+  <!-- Power Set generator widget -->
+  <div class="widget reveal">
+    <h3>Power set generator</h3>
+    <p class="hint">Enter a small set (4–5 elements recommended) and watch every subset get built.</p>
+    <div class="widget-body">
+      <div class="controls" style="flex:1;">
+        <label class="field-label" for="ch4-ps-input">Set</label>
+        <input class="set-input" id="ch4-ps-input" type="text" value="1, 2, 3" oninput="ch4GeneratePowerSet()">
+        <button class="primary-btn" onclick="ch4GeneratePowerSet()">Generate</button>
+        <div class="result-notation" id="ch4-ps-output" style="display:block; margin-top:14px; white-space:normal; line-height:2;"></div>
+      </div>
+    </div>
+  </div>
+
+  <details class="solved-example reveal">
+    <summary>Worked example: P({1, 2}) step by step</summary>
+    <div class="solved-step"><span class="step-num">1</span> Start with the empty set: { ∅ }</div>
+    <div class="solved-step"><span class="step-num">2</span> Add subsets containing 1: { ∅, {1} }</div>
+    <div class="solved-step"><span class="step-num">3</span> Add subsets containing 2 (combine with all previous): { ∅, {1}, {2} }</div>
+    <div class="solved-step"><span class="step-num">4</span> Add the subset containing both: { ∅, {1}, {2}, {1,2} }</div>
+    <div class="solved-step"><span class="step-num">✓</span> Total: 2² = 4 subsets, matching the formula.</div>
+  </details>
+</section>
+
+<!-- ================= CHAPTER 5 — VENN DIAGRAMS ================= -->
+<section class="chapter" id="ch5">
+  <div class="chapter-eyebrow reveal">Chapter 05</div>
+  <h2 class="chapter-title reveal">Venn Diagrams</h2>
+  <p class="lead reveal">Every operation in the next chapter has a formal definition — but the fastest way to actually understand one is to see it.</p>
+
+  <p class="reveal">Venn diagrams are named after English logician <span class="term">John Venn</span> (1834–1883). The convention is simple and has barely changed in over a century: a rectangle represents the universal set U, and circles inside it represent subsets. Where circles overlap, elements belong to both sets.</p>
+
+  <svg class="reveal" width="100%" height="200" viewBox="0 0 400 200" role="img" aria-label="Venn diagram showing universal set U as a rectangle containing two overlapping circles labeled A and B">
+    <rect x="20" y="20" width="360" height="160" rx="8" fill="none" stroke="var(--border)" stroke-width="2"/>
+    <text x="34" y="42" fill="var(--text-secondary)" font-size="14" font-weight="700">U</text>
+    <circle cx="160" cy="100" r="65" fill="#2563EB" fill-opacity="0.25" stroke="#2563EB" stroke-width="2"/>
+    <circle cx="240" cy="100" r="65" fill="#10B981" fill-opacity="0.25" stroke="#10B981" stroke-width="2"/>
+    <text x="120" y="105" fill="var(--text-primary)" font-size="18" font-style="italic" font-family="Georgia,serif">A</text>
+    <text x="270" y="105" fill="var(--text-primary)" font-size="18" font-style="italic" font-family="Georgia,serif">B</text>
+  </svg>
+
+  <div class="card remember reveal">
+    <div class="card-label">Remember</div>
+    <p>Venn diagrams are a visualization tool, not a proof method — they're excellent for building intuition and checking your work, but a rigorous proof still needs to be written using set-builder notation and logical reasoning (see the miscellaneous proofs referenced in Chapter 7).</p>
+  </div>
+
+  <p class="reveal">Chapter 6 uses this exact diagram as the visual anchor for every single operation — shading different regions to represent union, intersection, difference, and complement. If the diagram above makes sense, the next chapter will move quickly.</p>
+</section>
+
+<div class="section-divider" aria-hidden="true"></div>
+
+<!-- ================= CHAPTER 6 — OPERATIONS ON SETS ================= -->
+<section class="chapter wide" id="ch6">
+  <div class="chapter-eyebrow reveal">Chapter 06</div>
+  <h2 class="chapter-title reveal">Operations on Sets</h2>
+  <p class="lead reveal">Just like addition and multiplication combine numbers into new numbers, these five operations combine sets into new sets. Every one of them is defined below — then you can toggle through all of them live in the diagram.</p>
+
+  <!-- MAIN INTERACTIVE VENN VISUALIZER -->
+  <div class="widget reveal">
+    <h3>Interactive Venn visualizer</h3>
+    <p class="hint">Click an operation — the diagram and the formal notation both update instantly.</p>
+    <div class="widget-body" style="align-items:center;">
+      <div class="visual">
+        <svg id="ch6-venn" width="360" height="220" viewBox="0 0 360 220" role="img" aria-label="Interactive Venn diagram">
+          <defs>
+            <mask id="ch6-maskA"><rect x="0" y="0" width="360" height="220" fill="black"/><circle cx="150" cy="110" r="65" fill="white"/></mask>
+            <mask id="ch6-maskB"><rect x="0" y="0" width="360" height="220" fill="black"/><circle cx="230" cy="110" r="65" fill="white"/></mask>
+            <mask id="ch6-maskNotA"><rect x="0" y="0" width="360" height="220" fill="white"/><circle cx="150" cy="110" r="65" fill="black"/></mask>
+            <mask id="ch6-maskNotB"><rect x="0" y="0" width="360" height="220" fill="white"/><circle cx="230" cy="110" r="65" fill="black"/></mask>
+          </defs>
+          <rect x="10" y="20" width="340" height="180" rx="8" fill="none" stroke="var(--border)" stroke-width="2"/>
+          <text x="22" y="40" fill="var(--text-secondary)" font-size="13" font-weight="700">U</text>
+
+          <g class="venn-region" data-op="union">
+            <rect x="0" y="0" width="360" height="220" mask="url(#ch6-maskA)" fill="#2563EB" fill-opacity="0.4"/>
+            <rect x="0" y="0" width="360" height="220" mask="url(#ch6-maskB)" fill="#2563EB" fill-opacity="0.4"/>
+          </g>
+          <g class="venn-region" data-op="intersection">
+            <g mask="url(#ch6-maskA)"><rect x="0" y="0" width="360" height="220" mask="url(#ch6-maskB)" fill="#2563EB" fill-opacity="0.5"/></g>
+          </g>
+          <g class="venn-region" data-op="diffAB">
+            <g mask="url(#ch6-maskA)"><rect x="0" y="0" width="360" height="220" mask="url(#ch6-maskNotB)" fill="#2563EB" fill-opacity="0.5"/></g>
+          </g>
+          <g class="venn-region" data-op="diffBA">
+            <g mask="url(#ch6-maskB)"><rect x="0" y="0" width="360" height="220" mask="url(#ch6-maskNotA)" fill="#2563EB" fill-opacity="0.5"/></g>
+          </g>
+          <g class="venn-region" data-op="complementA">
+            <rect x="0" y="0" width="360" height="220" mask="url(#ch6-maskNotA)" fill="#2563EB" fill-opacity="0.4"/>
+          </g>
+          <g class="venn-region" data-op="symdiff">
+            <g mask="url(#ch6-maskA)"><rect x="0" y="0" width="360" height="220" mask="url(#ch6-maskNotB)" fill="#2563EB" fill-opacity="0.5"/></g>
+            <g mask="url(#ch6-maskB)"><rect x="0" y="0" width="360" height="220" mask="url(#ch6-maskNotA)" fill="#2563EB" fill-opacity="0.5"/></g>
+          </g>
+
+          <circle cx="150" cy="110" r="65" fill="none" stroke="#2563EB" stroke-width="2"/>
+          <circle cx="230" cy="110" r="65" fill="none" stroke="#10B981" stroke-width="2"/>
+          <text x="110" y="115" fill="var(--text-primary)" font-size="18" font-style="italic" font-family="Georgia,serif">A</text>
+          <text x="258" y="115" fill="var(--text-primary)" font-size="18" font-style="italic" font-family="Georgia,serif">B</text>
+        </svg>
+      </div>
+      <div class="controls">
+        <div class="toggle-row" id="ch6-toggle-row" style="margin-bottom:14px;">
+          <button class="toggle-btn active" data-op="union" onclick="ch6SetOp('union')">A ∪ B</button>
+          <button class="toggle-btn" data-op="intersection" onclick="ch6SetOp('intersection')">A ∩ B</button>
+          <button class="toggle-btn" data-op="diffAB" onclick="ch6SetOp('diffAB')">A − B</button>
+          <button class="toggle-btn" data-op="diffBA" onclick="ch6SetOp('diffBA')">B − A</button>
+          <button class="toggle-btn" data-op="complementA" onclick="ch6SetOp('complementA')">A′</button>
+          <button class="toggle-btn" data-op="symdiff" onclick="ch6SetOp('symdiff')">A Δ B</button>
+        </div>
+        <div class="result-notation" id="ch6-result" style="display:block;"></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="section-title reveal">Union (∪)</h3>
+  <div class="card definition reveal"><div class="card-label">Definition</div><p>A ∪ B = {x : x ∈ A or x ∈ B} — every element in A, in B, or in both, counted once.</p></div>
+  <p class="reveal">Example: {2,4,6,8} ∪ {6,8,10,12} = {2,4,6,8,10,12}. Notice 6 and 8 appear in both original sets but only once in the result.</p>
+
+  <h3 class="section-title reveal">Intersection (∩)</h3>
+  <div class="card definition reveal"><div class="card-label">Definition</div><p>A ∩ B = {x : x ∈ A and x ∈ B} — only elements common to both sets. If A ∩ B = ∅, A and B are called <span class="term">disjoint sets</span>.</p></div>
+  <p class="reveal">Example: {2,4,6,8} ∩ {6,8,10,12} = {6,8}.</p>
+
+  <h3 class="section-title reveal">Difference (−)</h3>
+  <div class="card definition reveal"><div class="card-label">Definition</div><p>A − B = {x : x ∈ A and x ∉ B} — elements in A with anything also in B removed. Note this is <em>not</em> symmetric: A − B ≠ B − A in general.</p></div>
+  <p class="reveal">Example: {1,2,3,4,5} − {2,4,6,8} = {1,3,5}, while {2,4,6,8} − {1,2,3,4,5} = {6,8}.</p>
+
+  <h3 class="section-title reveal">Complement (′)</h3>
+  <div class="card definition reveal"><div class="card-label">Definition</div><p>A′ = U − A = {x : x ∈ U and x ∉ A} — everything in the universal set that isn't in A.</p></div>
+
+  <h3 class="section-title reveal">Symmetric Difference (Δ)</h3>
+  <div class="card definition reveal"><div class="card-label">Definition</div><p>A Δ B = (A − B) ∪ (B − A) — elements in exactly one of the two sets, never both.</p></div>
+
+  <div class="card examtip reveal">
+    <div class="card-label">Exam Tip</div>
+    <p>A − B, A ∩ B, and B − A are mutually disjoint — together they exactly tile A ∪ B with no overlap. This is a handy sanity check when solving cardinality problems: |A∪B| = |A−B| + |A∩B| + |B−A|.</p>
+  </div>
+
+  <h3 class="section-title reveal">Cartesian Product (×)</h3>
+  <div class="card definition reveal"><div class="card-label">Definition</div><p>A × B is the set of all ordered pairs (a, b) where a ∈ A and b ∈ B. Order matters here: A × B ≠ B × A unless A = B.</p></div>
+
+  <div class="widget reveal">
+    <h3>Cartesian product builder</h3>
+    <p class="hint">Enter two small sets to see every ordered pair.</p>
+    <div class="widget-body">
+      <div class="controls" style="flex:1; min-width:200px;">
+        <label class="field-label" for="ch6-cp-a">Set A</label>
+        <input class="set-input" id="ch6-cp-a" type="text" value="1, 2" oninput="ch6UpdateCartesian()">
+        <label class="field-label" for="ch6-cp-b">Set B</label>
+        <input class="set-input" id="ch6-cp-b" type="text" value="x, y" oninput="ch6UpdateCartesian()">
+        <div class="result-notation" id="ch6-cp-output" style="display:block; white-space:normal;"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHAPTER 7 — SET LAWS ================= -->
+<section class="chapter" id="ch7">
+  <div class="chapter-eyebrow reveal">Chapter 07</div>
+  <h2 class="chapter-title reveal">Set Laws</h2>
+  <p class="lead reveal">Seven law families that let you simplify set expressions the same way algebraic laws let you simplify equations. These come up constantly in proofs.</p>
+
+  <div class="notation-block reveal">
+    <strong>Identity Laws</strong> &nbsp; A ∪ ∅ = A &nbsp;&nbsp; A ∩ U = A<br><br>
+    <strong>Domination Laws</strong> &nbsp; A ∪ U = U &nbsp;&nbsp; A ∩ ∅ = ∅<br><br>
+    <strong>Idempotent Laws</strong> &nbsp; A ∪ A = A &nbsp;&nbsp; A ∩ A = A<br><br>
+    <strong>Commutative Laws</strong> &nbsp; A ∪ B = B ∪ A &nbsp;&nbsp; A ∩ B = B ∩ A<br><br>
+    <strong>Associative Laws</strong> &nbsp; (A∪B)∪C = A∪(B∪C) &nbsp;&nbsp; (A∩B)∩C = A∩(B∩C)<br><br>
+    <strong>Distributive Laws</strong> &nbsp; A∪(B∩C) = (A∪B)∩(A∪C) &nbsp;&nbsp; A∩(B∪C) = (A∩B)∪(A∩C)<br><br>
+    <strong>Complement Laws</strong> &nbsp; A ∪ A′ = U &nbsp;&nbsp; A ∩ A′ = ∅ &nbsp;&nbsp; (A′)′ = A
+  </div>
+
+  <div class="card examtip reveal">
+    <div class="card-label">Exam Tip — De Morgan's Laws</div>
+    <p>The single most-tested pair in this entire book: <strong>(A ∪ B)′ = A′ ∩ B′</strong> and <strong>(A ∩ B)′ = A′ ∪ B′</strong>. In words: the complement of a union is the intersection of the complements, and vice versa. Named after mathematician Augustus De Morgan.</p>
+  </div>
+
+  <h3 class="section-title reveal">Seeing De Morgan's Law visually</h3>
+  <p class="reveal">Rather than take it on faith, compare these two diagrams — they shade the exact same region, proving (A ∪ B)′ = A′ ∩ B′:</p>
+
+  <div class="widget-body reveal" style="justify-content:center; gap:40px;">
+    <div style="text-align:center;">
+      <svg width="220" height="150" viewBox="0 0 220 150" role="img" aria-label="Venn diagram showing the complement of A union B shaded outside both circles">
+        <defs><mask id="dm1"><rect width="220" height="150" fill="white"/><circle cx="90" cy="75" r="42" fill="black"/><circle cx="130" cy="75" r="42" fill="black"/></mask></defs>
+        <rect x="10" y="15" width="200" height="120" rx="6" fill="none" stroke="var(--border)" stroke-width="1.5"/>
+        <rect width="220" height="150" mask="url(#dm1)" fill="#2563EB" fill-opacity="0.4"/>
+        <circle cx="90" cy="75" r="42" fill="none" stroke="#2563EB" stroke-width="1.5"/>
+        <circle cx="130" cy="75" r="42" fill="none" stroke="#10B981" stroke-width="1.5"/>
+      </svg>
+      <p style="font-size:13px; color:var(--text-secondary); margin-top:8px;">(A ∪ B)′</p>
+    </div>
+    <div style="text-align:center;">
+      <svg width="220" height="150" viewBox="0 0 220 150" role="img" aria-label="Venn diagram showing A complement intersected with B complement, also shaded outside both circles">
+        <defs><mask id="dm2"><rect width="220" height="150" fill="white"/><circle cx="90" cy="75" r="42" fill="black"/><circle cx="130" cy="75" r="42" fill="black"/></mask></defs>
+        <rect x="10" y="15" width="200" height="120" rx="6" fill="none" stroke="var(--border)" stroke-width="1.5"/>
+        <rect width="220" height="150" mask="url(#dm2)" fill="#10B981" fill-opacity="0.4"/>
+        <circle cx="90" cy="75" r="42" fill="none" stroke="#2563EB" stroke-width="1.5"/>
+        <circle cx="130" cy="75" r="42" fill="none" stroke="#10B981" stroke-width="1.5"/>
+      </svg>
+      <p style="font-size:13px; color:var(--text-secondary); margin-top:8px;">A′ ∩ B′</p>
+    </div>
+  </div>
+  <p class="reveal" style="text-align:center; color:var(--text-secondary); font-size:14px;">Identical shaded regions → the law holds. The second De Morgan's law (A∩B)′ = A′∪B′ follows the same logic, mirrored.</p>
+</section>
+
+<!-- ================= CHAPTER 8 — SET COMBINATIONS ================= -->
+<section class="chapter" id="ch8">
+  <div class="chapter-eyebrow reveal">Chapter 08</div>
+  <h2 class="chapter-title reveal">Set Combinations (Inclusion–Exclusion)</h2>
+  <p class="lead reveal">When you need the exact <em>count</em> of elements across overlapping sets, adding sizes naively double-counts the overlap. This principle corrects for that.</p>
+
+  <div class="card definition reveal">
+    <div class="card-label">Formula — two sets</div>
+    <p>|A ∪ B| = |A| + |B| − |A ∩ B|</p>
+  </div>
+  <div class="card definition reveal">
+    <div class="card-label">Formula — three sets</div>
+    <p>|A∪B∪C| = |A|+|B|+|C| − |A∩B| − |A∩C| − |B∩C| + |A∩B∩C|</p>
+  </div>
+  <p class="reveal">For three sets, pairwise overlaps get subtracted once each — but that removes the triple-overlap region three times over, so it has to be added back once at the end to land on the correct count.</p>
+
+  <!-- Inclusion-exclusion live calculator -->
+  <div class="widget reveal">
+    <h3>Inclusion–exclusion calculator</h3>
+    <p class="hint">Adjust the sizes — |A ∪ B| computes live.</p>
+    <div class="widget-body">
+      <div class="controls" style="flex:1;">
+        <label class="field-label">|A| = <span id="ch8-a-val">22</span></label>
+        <input type="range" min="0" max="50" value="22" id="ch8-a" oninput="ch8Update()" style="width:100%;">
+        <label class="field-label">|B| = <span id="ch8-b-val">26</span></label>
+        <input type="range" min="0" max="50" value="26" id="ch8-b" oninput="ch8Update()" style="width:100%;">
+        <label class="field-label">|A ∩ B| = <span id="ch8-i-val">14</span></label>
+        <input type="range" min="0" max="50" value="14" id="ch8-i" oninput="ch8Update()" style="width:100%;">
+        <div class="result-notation" id="ch8-output" style="display:block; margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <details class="solved-example reveal">
+    <summary>Solved: the classic hockey/basketball problem</summary>
+    <div class="solved-step"><span class="step-num">Q</span> In a class of 40 students, 22 play hockey, 26 play basketball, and 14 play both. How many play neither?</div>
+    <div class="solved-step"><span class="step-num">1</span> |H ∪ B| = |H| + |B| − |H ∩ B| = 22 + 26 − 14 = 34</div>
+    <div class="solved-step"><span class="step-num">2</span> Students playing neither = Total − |H ∪ B| = 40 − 34 = 6</div>
+    <div class="solved-step"><span class="step-num">✓</span> Answer: 6 students play neither sport.</div>
+  </details>
+</section>
+
+<!-- ================= CHAPTER 9 — APPLICATIONS IN CS ================= -->
+<section class="chapter" id="ch9">
+  <div class="chapter-eyebrow reveal">Chapter 09</div>
+  <h2 class="chapter-title reveal">Applications in Computer Science</h2>
+  <p class="lead reveal">This is where set theory stops being abstract. If you've written any of the code below, you were already thinking in sets.</p>
+
+  <div class="card cs-connection reveal">
+    <div class="card-label">Databases — SQL</div>
+    <p><code>UNION</code> and <code>INTERSECT</code> in SQL are literally set union and intersection over query results. A <code>JOIN</code> is a more elaborate relative built on the same idea — combining rows based on a shared condition.</p>
+    <div class="notation-block">SELECT name FROM customers<br>UNION<br>SELECT name FROM leads;<br><span style="color:var(--text-secondary);">-- returns every unique name from either table</span></div>
+  </div>
+
+  <div class="card cs-connection reveal">
+    <div class="card-label">Programming — Python</div>
+    <p>Python has a built-in <code>set</code> type with union and intersection as actual operators — this is Chapter 6, verbatim, in working code.</p>
+    <div class="notation-block">A = {2, 4, 6, 8}<br>B = {6, 8, 10, 12}<br>A | B &nbsp;<span style="color:var(--text-secondary);"># union → {2,4,6,8,10,12}</span><br>A &amp; B &nbsp;<span style="color:var(--text-secondary);"># intersection → {6,8}</span><br>A - B &nbsp;<span style="color:var(--text-secondary);"># difference → {2,4}</span></div>
+  </div>
+
+  <div class="card cs-connection reveal">
+    <div class="card-label">Data Structures — Hash Sets</div>
+    <p>A hash set's entire purpose is guaranteeing the set-theory rule that elements are distinct — inserting a duplicate simply has no effect, exactly like {1,2,2,3} collapsing to {1,2,3}.</p>
+  </div>
+
+  <div class="card cs-connection reveal">
+    <div class="card-label">Search Engines</div>
+    <p>Searching "discrete AND math" returns the intersection of pages containing "discrete" and pages containing "math." Searching "discrete OR math" returns their union. Boolean search syntax is set notation wearing different symbols.</p>
+  </div>
+</section>
+
+<div class="section-divider" aria-hidden="true"></div>
+
+<!-- ================= CHAPTER 10 — SUMMARY & FORMULA SHEET ================= -->
+<section class="chapter" id="ch10">
+  <div class="chapter-eyebrow reveal">Chapter 10</div>
+  <h2 class="chapter-title reveal">Chapter Summary &amp; Formula Sheet</h2>
+  <p class="lead reveal">Everything from Chapters 1–9, condensed onto one page for last-minute revision.</p>
+
+  <h3 class="section-title reveal">Core definitions</h3>
+  <div class="notation-block reveal">
+    Set: a well-defined collection of distinct objects &nbsp;|&nbsp; a ∈ A: a belongs to A &nbsp;|&nbsp; a ∉ A: a does not belong to A<br>
+    Roster form: {list of elements} &nbsp;|&nbsp; Set-builder form: {x : property of x}<br>
+    ∅: empty set &nbsp;|&nbsp; U: universal set &nbsp;|&nbsp; |A|: cardinality of A
+  </div>
+
+  <h3 class="section-title reveal">Operations</h3>
+  <div class="notation-block reveal">
+    A ∪ B = {x : x∈A or x∈B} &nbsp;&nbsp; A ∩ B = {x : x∈A and x∈B}<br>
+    A − B = {x : x∈A and x∉B} &nbsp;&nbsp; A′ = U − A<br>
+    A Δ B = (A−B) ∪ (B−A) &nbsp;&nbsp; A × B = {(a,b) : a∈A, b∈B}
+  </div>
+
+  <h3 class="section-title reveal">Formulas</h3>
+  <div class="notation-block reveal">
+    |A ∪ B| = |A| + |B| − |A ∩ B|<br>
+    |A∪B∪C| = |A|+|B|+|C| − |A∩B| − |A∩C| − |B∩C| + |A∩B∩C|<br>
+    |P(S)| = 2ⁿ &nbsp;(n = |S|) &nbsp;&nbsp; |A × B| = |A| · |B|
+  </div>
+
+  <h3 class="section-title reveal">The seven law families</h3>
+  <div class="notation-block reveal">
+    Identity &nbsp;·&nbsp; Domination &nbsp;·&nbsp; Idempotent &nbsp;·&nbsp; Commutative &nbsp;·&nbsp; Associative &nbsp;·&nbsp; Distributive &nbsp;·&nbsp; De Morgan's: (A∪B)′=A′∩B′, (A∩B)′=A′∪B′
+  </div>
+</section>
+
+<!-- ================= CHAPTER 11 — GLOSSARY ================= -->
+<section class="chapter wide" id="ch11">
+  <div class="chapter-eyebrow reveal">Chapter 11</div>
+  <h2 class="chapter-title reveal">Glossary</h2>
+  <p class="lead reveal">Every bolded term from Chapters 1–9, as flip-to-reveal flashcards. Click any card.</p>
+
+  <div class="flashcard-grid reveal" id="glossary-cards">
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Set</div><div class="flashcard-face flashcard-back">A well-defined collection of distinct objects.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Well-defined</div><div class="flashcard-face flashcard-back">Membership can be decided objectively, without ambiguity.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Roster form</div><div class="flashcard-face flashcard-back">Listing every element explicitly inside braces: {1,2,3}.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Set-builder form</div><div class="flashcard-face flashcard-back">Describing elements by a shared property: {x : x is even}.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Empty set (∅)</div><div class="flashcard-face flashcard-back">A well-defined set containing zero elements.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Singleton set</div><div class="flashcard-face flashcard-back">A set with exactly one element.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Finite set</div><div class="flashcard-face flashcard-back">A set whose elements can be completely counted.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Infinite set</div><div class="flashcard-face flashcard-back">A set whose counting process never terminates.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Equal sets</div><div class="flashcard-face flashcard-back">Sets with exactly the same elements (A = B).</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Equivalent sets</div><div class="flashcard-face flashcard-back">Sets with the same cardinality, elements may differ.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Universal set (U)</div><div class="flashcard-face flashcard-back">The complete set of everything under consideration.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Subset (⊆)</div><div class="flashcard-face flashcard-back">Every element of A is also in B.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Proper subset (⊂)</div><div class="flashcard-face flashcard-back">A ⊆ B and A ≠ B.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Power set P(S)</div><div class="flashcard-face flashcard-back">The set of all subsets of S, including ∅ and S. Size 2ⁿ.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Union (∪)</div><div class="flashcard-face flashcard-back">Elements in A, in B, or in both.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Intersection (∩)</div><div class="flashcard-face flashcard-back">Elements common to both A and B.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Disjoint sets</div><div class="flashcard-face flashcard-back">Sets whose intersection is the empty set.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Difference (A−B)</div><div class="flashcard-face flashcard-back">Elements in A that are not in B.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Complement (A′)</div><div class="flashcard-face flashcard-back">Elements in U that are not in A.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Symmetric difference (Δ)</div><div class="flashcard-face flashcard-back">Elements in exactly one of A or B, never both.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Cartesian product (×)</div><div class="flashcard-face flashcard-back">All ordered pairs (a,b) with a∈A and b∈B.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">De Morgan's Laws</div><div class="flashcard-face flashcard-back">(A∪B)′=A′∩B′ and (A∩B)′=A′∪B′.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Inclusion-Exclusion</div><div class="flashcard-face flashcard-back">|A∪B| = |A|+|B|−|A∩B|, corrects for double-counted overlap.</div></div></div>
+    <div class="flashcard"><div class="flashcard-inner"><div class="flashcard-face flashcard-front">Russell's Paradox</div><div class="flashcard-face flashcard-back">The set of all sets that don't contain themselves — a contradiction that reshaped set theory's foundations.</div></div></div>
+  </div>
+</section>
+
+<!-- ================= CHAPTER 12 — PRACTICE & QUIZ ================= -->
+<section class="chapter wide" id="ch12">
+  <div class="chapter-eyebrow reveal">Chapter 12</div>
+  <h2 class="chapter-title reveal">Practice Questions &amp; Quiz</h2>
+  <p class="lead reveal">Nine short quizzes, one per topic chapter — three questions each. Finish one and its badge lights up in the progress ring at the top.</p>
+
+  <div id="quiz-ch1">
+    <h3 class="section-title reveal">Quiz — Introduction</h3>
+    <div class="quiz-question" data-correct="1"><div class="q-text">1. Who is credited with founding set theory?</div><div class="quiz-options"><button class="quiz-option">Bertrand Russell</button><button class="quiz-option">Georg Cantor</button><button class="quiz-option">John Venn</button><button class="quiz-option">Augustus De Morgan</button></div><div class="quiz-explain">Cantor developed set theory from 1874 onward while studying trigonometric series.</div></div>
+    <div class="quiz-question" data-correct="2"><div class="q-text">2. Russell's Paradox concerns:</div><div class="quiz-options"><button class="quiz-option">Infinite unions</button><button class="quiz-option">Empty sets</button><button class="quiz-option">The set of all sets that don't contain themselves</button><button class="quiz-option">Power sets of infinite sets</button></div><div class="quiz-explain">Asking whether this set contains itself leads to a direct contradiction either way.</div></div>
+    <div class="quiz-question" data-correct="0"><div class="q-text">3. Which is a real-world CS use of set theory?</div><div class="quiz-options"><button class="quiz-option">SQL UNION queries</button><button class="quiz-option">Sorting an array</button><button class="quiz-option">Compiling C code</button><button class="quiz-option">Rendering a webpage</button></div><div class="quiz-explain">SQL's UNION/INTERSECT directly implement set union/intersection.</div></div>
+    <div class="badge">🏆 Chapter 1 Badge Earned</div>
+  </div>
+
+  <div id="quiz-ch2">
+    <h3 class="section-title reveal">Quiz — Elementary Set Theory</h3>
+    <div class="quiz-question" data-correct="1"><div class="q-text">1. {x : x is a vowel} is an example of:</div><div class="quiz-options"><button class="quiz-option">Roster form</button><button class="quiz-option">Set-builder form</button><button class="quiz-option">Neither</button><button class="quiz-option">An empty set</button></div><div class="quiz-explain">It describes a property, not a literal list — that's set-builder form.</div></div>
+    <div class="quiz-question" data-correct="2"><div class="q-text">2. Which collection is NOT a valid set?</div><div class="quiz-options"><button class="quiz-option">Vowels in English</button><button class="quiz-option">Prime numbers under 20</button><button class="quiz-option">The best cricketers ever</button><button class="quiz-option">Days of the week</button></div><div class="quiz-explain">"Best" is subjective — membership isn't objectively decidable, so it fails the well-defined test.</div></div>
+    <div class="quiz-question" data-correct="0"><div class="q-text">3. {1,2,2,3} in proper set notation is:</div><div class="quiz-options"><button class="quiz-option">{1,2,3}</button><button class="quiz-option">{1,2,2,3}</button><button class="quiz-option">{1,3}</button><button class="quiz-option">Not a valid set</button></div><div class="quiz-explain">Repeated elements always collapse to one occurrence.</div></div>
+    <div class="badge">🏆 Chapter 2 Badge Earned</div>
+  </div>
+
+  <div id="quiz-ch3">
+    <h3 class="section-title reveal">Quiz — Types of Sets</h3>
+    <div class="quiz-question" data-correct="2"><div class="q-text">1. A = {1,2,3}, B = {x,y,z}. These sets are:</div><div class="quiz-options"><button class="quiz-option">Equal</button><button class="quiz-option">Neither equal nor equivalent</button><button class="quiz-option">Equivalent only</button><button class="quiz-option">Both equal and equivalent</button></div><div class="quiz-explain">Same size (3), completely different elements — equivalent, not equal.</div></div>
+    <div class="quiz-question" data-correct="1"><div class="q-text">2. Every pair of equal sets is also:</div><div class="quiz-options"><button class="quiz-option">Disjoint</button><button class="quiz-option">Equivalent</button><button class="quiz-option">Infinite</button><button class="quiz-option">Singleton</button></div><div class="quiz-explain">Identical elements guarantees identical count — equal implies equivalent.</div></div>
+    <div class="quiz-question" data-correct="0"><div class="q-text">3. {x : x∈ℕ and x&lt;1,000,000} is:</div><div class="quiz-options"><button class="quiz-option">Finite</button><button class="quiz-option">Infinite</button><button class="quiz-option">Empty</button><button class="quiz-option">Singleton</button></div><div class="quiz-explain">Large, but the counting process still terminates — it's finite.</div></div>
+    <div class="badge">🏆 Chapter 3 Badge Earned</div>
+  </div>
+
+  <div id="quiz-ch4">
+    <h3 class="section-title reveal">Quiz — Subsets &amp; Power Sets</h3>
+    <div class="quiz-question" data-correct="1"><div class="q-text">1. A = {1,2,{3,4},5}. Is {3,4} ∈ A or {3,4} ⊆ A?</div><div class="quiz-options"><button class="quiz-option">{3,4} ⊆ A</button><button class="quiz-option">{3,4} ∈ A</button><button class="quiz-option">Both</button><button class="quiz-option">Neither</button></div><div class="quiz-explain">{3,4} appears as a literal element of A, so it's membership (∈), not a subset relation.</div></div>
+    <div class="quiz-question" data-correct="3"><div class="q-text">2. |P(S)| for a 4-element set S is:</div><div class="quiz-options"><button class="quiz-option">4</button><button class="quiz-option">8</button><button class="quiz-option">12</button><button class="quiz-option">16</button></div><div class="quiz-explain">2⁴ = 16.</div></div>
+    <div class="quiz-question" data-correct="0"><div class="q-text">3. ∅ ⊆ A is true for:</div><div class="quiz-options"><button class="quiz-option">Every set A, always</button><button class="quiz-option">Only finite sets</button><button class="quiz-option">Only if A = ∅</button><button class="quiz-option">Never</button></div><div class="quiz-explain">The empty set is a subset of every set, with no exceptions.</div></div>
+    <div class="badge">🏆 Chapter 4 Badge Earned</div>
+  </div>
+
+  <div id="quiz-ch5">
+    <h3 class="section-title reveal">Quiz — Venn Diagrams</h3>
+    <div class="quiz-question" data-correct="1"><div class="q-text">1. In a Venn diagram, the rectangle represents:</div><div class="quiz-options"><button class="quiz-option">The empty set</button><button class="quiz-option">The universal set</button><button class="quiz-option">A subset</button><button class="quiz-option">The complement</button></div><div class="quiz-explain">The rectangle is always U, the universal set.</div></div>
+    <div class="quiz-question" data-correct="2"><div class="q-text">2. Venn diagrams are named after:</div><div class="quiz-options"><button class="quiz-option">Georg Cantor</button><button class="quiz-option">Augustus De Morgan</button><button class="quiz-option">John Venn</button><button class="quiz-option">Bertrand Russell</button></div><div class="quiz-explain">English logician John Venn (1834–1883).</div></div>
+    <div class="quiz-question" data-correct="0"><div class="q-text">3. Venn diagrams are best used as:</div><div class="quiz-options"><button class="quiz-option">A visualization/intuition tool</button><button class="quiz-option">A rigorous proof method</button><button class="quiz-option">A replacement for set-builder notation</button><button class="quiz-option">A cardinality formula</button></div><div class="quiz-explain">They build intuition and check work — formal proofs still need set-builder reasoning.</div></div>
+    <div class="badge">🏆 Chapter 5 Badge Earned</div>
+  </div>
+
+  <div id="quiz-ch6">
+    <h3 class="section-title reveal">Quiz — Operations on Sets</h3>
+    <div class="quiz-question" data-correct="2"><div class="q-text">1. {1,2,3} − {2,3,4} equals:</div><div class="quiz-options"><button class="quiz-option">{2,3}</button><button class="quiz-option">{4}</button><button class="quiz-option">{1}</button><button class="quiz-option">∅</button></div><div class="quiz-explain">Only 1 is in the first set but not the second.</div></div>
+    <div class="quiz-question" data-correct="1"><div class="q-text">2. A Δ B is defined as:</div><div class="quiz-options"><button class="quiz-option">A ∩ B</button><button class="quiz-option">(A−B) ∪ (B−A)</button><button class="quiz-option">A ∪ B</button><button class="quiz-option">U − (A∪B)</button></div><div class="quiz-explain">Symmetric difference = elements in exactly one set.</div></div>
+    <div class="quiz-question" data-correct="3"><div class="q-text">3. A × B ≠ B × A unless:</div><div class="quiz-options"><button class="quiz-option">Both are empty</button><button class="quiz-option">Both are infinite</button><button class="quiz-option">|A| = |B|</button><button class="quiz-option">A = B</button></div><div class="quiz-explain">The Cartesian product is non-commutative in general; only equal sets produce equal products.</div></div>
+    <div class="badge">🏆 Chapter 6 Badge Earned</div>
+  </div>
+
+  <div id="quiz-ch7">
+    <h3 class="section-title reveal">Quiz — Set Laws</h3>
+    <div class="quiz-question" data-correct="1"><div class="q-text">1. (A ∪ B)′ equals:</div><div class="quiz-options"><button class="quiz-option">A′ ∪ B′</button><button class="quiz-option">A′ ∩ B′</button><button class="quiz-option">A ∩ B</button><button class="quiz-option">(A∩B)′</button></div><div class="quiz-explain">De Morgan's Law: complement of a union is the intersection of complements.</div></div>
+    <div class="quiz-question" data-correct="0"><div class="q-text">2. A ∪ U equals:</div><div class="quiz-options"><button class="quiz-option">U</button><button class="quiz-option">A</button><button class="quiz-option">∅</button><button class="quiz-option">A′</button></div><div class="quiz-explain">Domination law — anything unioned with U is U.</div></div>
+    <div class="quiz-question" data-correct="2"><div class="q-text">3. A ∩ A′ equals:</div><div class="quiz-options"><button class="quiz-option">A</button><button class="quiz-option">U</button><button class="quiz-option">∅</button><button class="quiz-option">A′</button></div><div class="quiz-explain">Complement law — A and its complement share no elements.</div></div>
+    <div class="badge">🏆 Chapter 7 Badge Earned</div>
+  </div>
+
+  <div id="quiz-ch8">
+    <h3 class="section-title reveal">Quiz — Set Combinations</h3>
+    <div class="quiz-question" data-correct="1"><div class="q-text">1. |A|=10, |B|=15, |A∩B|=4. |A∪B| =</div><div class="quiz-options"><button class="quiz-option">25</button><button class="quiz-option">21</button><button class="quiz-option">29</button><button class="quiz-option">19</button></div><div class="quiz-explain">10+15−4 = 21.</div></div>
+    <div class="quiz-question" data-correct="0"><div class="q-text">2. Why subtract |A∩B| in the two-set formula?</div><div class="quiz-options"><button class="quiz-option">It was counted twice, once in |A| and once in |B|</button><button class="quiz-option">It's always zero</button><button class="quiz-option">To make the answer smaller</button><button class="quiz-option">It's a rounding correction</button></div><div class="quiz-explain">Overlap elements get counted in both |A| and |B|, so one copy must be removed.</div></div>
+    <div class="quiz-question" data-correct="3"><div class="q-text">3. In the three-set formula, |A∩B∩C| is:</div><div class="quiz-options"><button class="quiz-option">Subtracted once</button><button class="quiz-option">Ignored</button><button class="quiz-option">Subtracted twice</button><button class="quiz-option">Added back once</button></div><div class="quiz-explain">It gets removed three times by the pairwise subtractions, so it's added back once to correct for that.</div></div>
+    <div class="badge">🏆 Chapter 8 Badge Earned</div>
+  </div>
+
+  <div id="quiz-ch9">
+    <h3 class="section-title reveal">Quiz — Applications in CS</h3>
+    <div class="quiz-question" data-correct="2"><div class="q-text">1. Python's <code>A &amp; B</code> for sets computes:</div><div class="quiz-options"><button class="quiz-option">Union</button><button class="quiz-option">Difference</button><button class="quiz-option">Intersection</button><button class="quiz-option">Symmetric difference</button></div><div class="quiz-explain">The & operator on Python sets is intersection.</div></div>
+    <div class="quiz-question" data-correct="1"><div class="q-text">2. A hash set enforces which set-theory property?</div><div class="quiz-options"><button class="quiz-option">Ordering</button><button class="quiz-option">Distinct elements</button><button class="quiz-option">Infinite size</button><button class="quiz-option">Cardinality of zero</button></div><div class="quiz-explain">Hash sets guarantee no duplicates — matching how sets naturally collapse repeats.</div></div>
+    <div class="quiz-question" data-correct="0"><div class="q-text">3. Searching "X AND Y" in a search engine is equivalent to:</div><div class="quiz-options"><button class="quiz-option">Intersection of results for X and Y</button><button class="quiz-option">Union of results for X and Y</button><button class="quiz-option">Complement of X</button><button class="quiz-option">Cartesian product of X and Y</button></div><div class="quiz-explain">AND narrows to pages containing both — that's intersection.</div></div>
+    <div class="badge">🏆 Chapter 9 Badge Earned</div>
+  </div>
+</section>
+
+<!-- ================= CHAPTER 13 — REFERENCES ================= -->
+<section class="chapter" id="ch13">
+  <div class="chapter-eyebrow reveal">Chapter 13</div>
+  <h2 class="chapter-title reveal">References</h2>
+  <p class="reveal">SetScape's content was synthesized and rewritten in original language from the following reference material, then verified against standard treatments of elementary set theory. Cited in IEEE format:</p>
+  <ol class="reveal" style="padding-left:24px; color:var(--text-secondary); line-height:2.1; font-size:14.5px;">
+    <li id="ref1">National Council of Educational Research and Training (NCERT), "Sets," in <em>Mathematics Textbook for Class XI</em>, ch. 1, New Delhi, India: NCERT, 2023. [Online]. Available: <a href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener">https://ncert.nic.in/textbook.php</a></li>
+    <li id="ref2">BYJU'S, "Sets in Maths," BYJU'S Learning Portal. [Online]. Available: <a href="https://byjus.com/maths/sets/" target="_blank" rel="noopener">https://byjus.com/maths/sets/</a></li>
+    <li id="ref3">Cuemath, "Sets," Cuemath Algebra Resources. [Online]. Available: <a href="https://www.cuemath.com/algebra/sets/" target="_blank" rel="noopener">https://www.cuemath.com/algebra/sets/</a></li>
+    <li id="ref4">GeeksforGeeks, "Set Theory," GeeksforGeeks. [Online]. Available: <a href="https://www.geeksforgeeks.org/set-theory/" target="_blank" rel="noopener">https://www.geeksforgeeks.org/set-theory/</a></li>
+    <li id="ref5">W3Schools, "Discrete Mathematics," W3Schools. [Online]. Available: <a href="https://www.w3schools.com/" target="_blank" rel="noopener">https://www.w3schools.com/</a></li>
+    <li id="ref6">Testbook, "Sets in Maths," Testbook. [Online]. Available: <a href="https://testbook.com/maths/sets" target="_blank" rel="noopener">https://testbook.com/maths/sets</a></li>
+    <li id="ref7">Wikipedia contributors, "Set (mathematics)," <em>Wikipedia, The Free Encyclopedia</em>. [Online]. Available: <a href="https://en.wikipedia.org/wiki/Set_(mathematics)" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Set_(mathematics)</a></li>
+  </ol>
+</section>
+
+<div class="section-divider" aria-hidden="true"></div>
+
+<!-- ================= THANK YOU ================= -->
+<section id="thankyou">
+  <div class="dot-grid" aria-hidden="true" style="position:absolute; inset:0;"></div>
+  <div style="position:relative;">
+    <div class="chapter-eyebrow reveal" style="justify-content:center;">You made it</div>
+    <h2 class="chapter-title reveal" style="font-size:clamp(32px,6vw,52px);">Congratulations!</h2>
+    <p class="lead reveal" style="max-width:560px; margin:0 auto 24px;">You've covered the complete foundations of Elementary Set Theory — from Cantor's original question about infinity, all the way to the code you'll write with these ideas.</p>
+    <div class="reveal" style="margin:0 auto; max-width:400px;">
+      <input class="set-input" id="student-name-input" type="text" placeholder="Type your name for a completion note" style="text-align:center;" oninput="saveStudentName()">
+      <p id="completion-note" style="font-family:var(--font-heading); font-style:italic; font-size:18px; margin-top:16px;"></p>
+    </div>
+    <button class="cta-btn reveal" onclick="scrollToTop()" style="margin-top:20px;">Back to the Beginning</button>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  SetScape — built for BCA/MCA Semester I · Discrete Mathematics &nbsp;·&nbsp; <span id="footer-year"></span>
+</footer>
+
+<script src="script.js"></script>
+<script>
+document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+function ch2UpdateNotation() {
+  const arr = parseSet(document.getElementById('ch2-roster-input').value);
+  document.getElementById('ch2-output').textContent = formatSet(arr) + ' — cardinality ' + arr.length;
+}
+function ch2CheckPractice() {
+  const val = parseSet(document.getElementById('ch2-qp-input').value).map(Number).sort((a,b)=>a-b);
+  const answer = [1,2,3,4,5];
+  const fb = document.getElementById('ch2-qp-feedback');
+  const correct = val.length === answer.length && val.every((v,i) => v === answer[i]);
+  fb.className = 'qp-feedback ' + (correct ? 'correct' : 'incorrect');
+  fb.textContent = correct ? '✓ Correct — {1, 2, 3, 4, 5}, since 6² = 36 is not < 30.' : '✗ Not quite. Try again — remember x must be a natural number where x² is strictly less than 30.';
+}
+
+/* ---- Chapter 3 widgets ---- */
+function ch3UpdateCardinality() {
+  const arr = parseSet(document.getElementById('ch3-card-input').value);
+  const out = document.getElementById('ch3-card-output');
+  let kind = 'a regular set';
+  if (arr.length === 0) kind = 'the empty set (∅)';
+  else if (arr.length === 1) kind = 'a singleton set';
+  out.textContent = formatSet(arr) + '  →  |A| = ' + arr.length + '  (' + kind + ')';
+}
+function ch3CheckEquality() {
+  const a = parseSet(document.getElementById('ch3-eq-a').value);
+  const b = parseSet(document.getElementById('ch3-eq-b').value);
+  const out = document.getElementById('ch3-eq-output');
+  if (isEqual(a, b)) {
+    out.textContent = 'A = B  →  Equal sets (identical elements)';
+  } else if (a.length === b.length) {
+    out.textContent = 'A ≠ B, but |A| = |B| = ' + a.length + '  →  Equivalent sets only';
+  } else {
+    out.textContent = 'A ≠ B and |A| ≠ |B|  →  Neither equal nor equivalent';
+  }
+}
+document.addEventListener('DOMContentLoaded', () => { ch3UpdateCardinality(); ch3CheckEquality(); });
+
+/* ---- Chapter 4 widgets ---- */
+function ch4CheckSubset() {
+  const a = parseSet(document.getElementById('ch4-sub-a').value);
+  const b = parseSet(document.getElementById('ch4-sub-b').value);
+  const out = document.getElementById('ch4-sub-output');
+  const aSubB = isSubset(a, b);
+  const bSubA = isSubset(b, a);
+  let msg;
+  if (aSubB && bSubA) msg = 'A ⊆ B and B ⊆ A  →  therefore A = B';
+  else if (aSubB) msg = 'A ⊂ B  →  A is a proper subset of B';
+  else if (bSubA) msg = 'B ⊂ A  →  B is a proper subset of A';
+  else msg = 'A ⊄ B and B ⊄ A  →  neither is a subset of the other';
+  out.textContent = msg;
+}
+function ch4GeneratePowerSet() {
+  const arr = parseSet(document.getElementById('ch4-ps-input').value);
+  const out = document.getElementById('ch4-ps-output');
+  if (arr.length > 6) {
+    out.textContent = 'That set is a bit large to display fully (2^' + arr.length + ' = ' + Math.pow(2,arr.length) + ' subsets) — try 5 or fewer elements.';
+    return;
+  }
+  const ps = powerSet(arr);
+  out.innerHTML = 'P(S) has ' + ps.length + ' = 2<sup>' + arr.length + '</sup> subsets:<br>' +
+    ps.map(s => s.length ? '{' + s.join(',') + '}' : '∅').join(', ');
+}
+document.addEventListener('DOMContentLoaded', () => { ch4CheckSubset(); ch4GeneratePowerSet(); });
+
+/* ---- Chapter 6: Venn visualizer ---- */
+const CH6_LABELS = {
+  union: 'A ∪ B = { x : x ∈ A or x ∈ B }',
+  intersection: 'A ∩ B = { x : x ∈ A and x ∈ B }',
+  diffAB: 'A − B = { x : x ∈ A and x ∉ B }',
+  diffBA: 'B − A = { x : x ∈ B and x ∉ A }',
+  complementA: "A′ = U − A = { x : x ∈ U and x ∉ A }",
+  symdiff: 'A Δ B = (A − B) ∪ (B − A)'
+};
+function ch6SetOp(op) {
+  document.querySelectorAll('#ch6-venn .venn-region').forEach(g => g.classList.toggle('active', g.dataset.op === op));
+  document.querySelectorAll('#ch6-toggle-row .toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.op === op));
+  document.getElementById('ch6-result').textContent = CH6_LABELS[op];
+}
+document.addEventListener('DOMContentLoaded', () => ch6SetOp('union'));
+
+function ch6UpdateCartesian() {
+  const a = parseSet(document.getElementById('ch6-cp-a').value);
+  const b = parseSet(document.getElementById('ch6-cp-b').value);
+  const out = document.getElementById('ch6-cp-output');
+  if (!a.length || !b.length) { out.textContent = 'Enter at least one element in each set.'; return; }
+  const pairs = cartesianProduct(a, b);
+  out.textContent = 'A × B = { ' + pairs.join(', ') + ' }  →  |A×B| = ' + pairs.length;
+}
+document.addEventListener('DOMContentLoaded', () => ch6UpdateCartesian());
+
+/* ---- Chapter 8: inclusion-exclusion ---- */
+function ch8Update() {
+  const a = parseInt(document.getElementById('ch8-a').value, 10);
+  const b = parseInt(document.getElementById('ch8-b').value, 10);
+  let i = parseInt(document.getElementById('ch8-i').value, 10);
+  // intersection can't exceed the smaller set
+  const maxI = Math.min(a, b);
+  if (i > maxI) { i = maxI; document.getElementById('ch8-i').value = i; }
+  document.getElementById('ch8-a-val').textContent = a;
+  document.getElementById('ch8-b-val').textContent = b;
+  document.getElementById('ch8-i-val').textContent = i;
+  const union = a + b - i;
+  document.getElementById('ch8-output').textContent = '|A ∪ B| = ' + a + ' + ' + b + ' − ' + i + ' = ' + union;
+}
+document.addEventListener('DOMContentLoaded', () => ch8Update());
+
+/* ---- Chapter 12: init all quizzes ---- */
+document.addEventListener('DOMContentLoaded', () => {
+  for (let i = 1; i <= 9; i++) {
+    initQuiz('quiz-ch' + i, 'ch' + i);
+  }
+});
+
+/* ---- Chapter 11: glossary flashcards ---- */
+document.addEventListener('DOMContentLoaded', () => initFlashcards('glossary-cards'));
+
+/* ---- Thank you: student name note ---- */
+function saveStudentName() {
+  const name = document.getElementById('student-name-input').value.trim();
+  const note = document.getElementById('completion-note');
+  localStorage.setItem('setscape-student-name', name);
+  note.textContent = name ? '— Certified: ' + name + ' has explored, visualized, and mastered Set Theory —' : '';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('setscape-student-name');
+  if (saved) {
+    document.getElementById('student-name-input').value = saved;
+    saveStudentName();
+  }
+});
+</script>
+</body>
+</html>
